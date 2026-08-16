@@ -97,15 +97,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     // Held from the base layers via LT(SYM, KC_SPC): tap space for space, hold for
     // this. Left-hand-only symbols for Neovim/LazyVim, laid out per finger column:
-    // Q/W = ~ ` , E/R = ( ) , T = % , A/S = { } , D/F = ^ $ , G = - ,
-    // Z/X = @ _ , C/V = [ ] , B = *. Right hand is a number pad on YUIOP/HJKL;:
+    // Q/W = ~ ` , E/R = ( ) , T = % , A/S = & = , D/F = ^ $ , G = - ,
+    // Z/X = @ _ , C/V = + ! , B = *. {} and [] dropped - already one shift away
+    // on the base layer. Right hand is a number pad on YUIOP/HJKL;:
     // Y U I O P = 0 1 2 3 4, H J K L ; = 5 6 7 8 9.
     [SYM] = LAYOUT(
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
         _______, KC_TILD, KC_GRV,  KC_LPRN, KC_RPRN, KC_PERC, KC_0,    KC_1,    KC_2,    KC_3,    KC_4,    _______, _______, _______,  _______,
-        _______, KC_LCBR, KC_RCBR, KC_CIRC, KC_DLR,  KC_MINS, KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    _______,          _______,  _______,
-        _______, KC_AT,   KC_UNDS, KC_LBRC, KC_RBRC, KC_ASTR, _______, _______, _______, _______, _______,          _______, _______,  _______,
+        _______, KC_AMPR, KC_EQL,  KC_CIRC, KC_DLR,  KC_MINS, KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    _______,          _______,  _______,
+        _______, KC_AT,   KC_UNDS, KC_PLUS, KC_EXLM, KC_ASTR, _______, _______, _______, _______, _______,          _______, _______,  _______,
         _______, _______, _______,                   _______,                            _______, _______,          _______, _______,  _______, _______),
 };
 
