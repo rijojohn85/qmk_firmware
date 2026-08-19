@@ -53,9 +53,9 @@ enum custom_keycodes {
 
 // Thumbs
 #define TH_ESC LT(_TMUX, KC_ESC)
-#define TH_SPC LT(_NAV, KC_SPC)
-#define TH_TAB LT(_NUM, KC_TAB)
-#define TH_ENT LT(_SYM, KC_ENT)
+#define TH_NAV LT(_NAV, KC_TAB)
+#define TH_NUM LT(_NUM, KC_ENT)
+#define TH_SYM LT(_SYM, KC_SPC)
 #define TH_DEL LT(_FUN, KC_DEL)
 
 #define OSL_TM OSL(_TMUX)
@@ -70,7 +70,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
       KC_LSFT,    KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                          KC_N,    KC_M, KC_COMM,  KC_DOT, KC_SLSH, KC_MINS,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                           TH_ESC,  TH_SPC,  TH_TAB,     TH_ENT, KC_BSPC,  TH_DEL
+                                           TH_ESC,  TH_NAV,  TH_NUM,     TH_SYM, KC_BSPC,  TH_DEL
                                       //`--------------------------'  `--------------------------'
   ),
 
@@ -82,7 +82,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
       KC_LSFT,    KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                          KC_N,    KC_M, KC_COMM,  KC_DOT, KC_SLSH, KC_MINS,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                           TH_ESC,  TH_SPC,  TH_TAB,     TH_ENT, KC_BSPC,  TH_DEL
+                                           TH_ESC,  TH_NAV,  TH_NUM,     TH_SYM, KC_BSPC,  TH_DEL
                                       //`--------------------------'  `--------------------------'
   ),
 
