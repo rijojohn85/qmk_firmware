@@ -16,6 +16,7 @@ enum layers {
 
 enum tap_dance_codes {
     TD_COLN_ASSIGN, // tap: :   double-tap: :=  (Go short var decl)
+    TD_EXL_NEQ,     // tap: !   double-tap: !=
 };
 
 enum custom_keycodes {
@@ -65,6 +66,7 @@ enum custom_keycodes {
 #define OSL_TM OSL(_TMUX)
 #define OSM_SFT OSM(MOD_LSFT)
 #define TD_ASGN TD(TD_COLN_ASSIGN)
+#define TD_EXL  TD(TD_EXL_NEQ)
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_LIN] = LAYOUT_split_3x6_3_ex2(
@@ -117,7 +119,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_SYM] = LAYOUT_split_3x6_3_ex2(
   //,--------------------------------------------------------------.  ,--------------------------------------------------------------.
-      _______, KC_EXLM,   KC_AT, KC_HASH,  KC_DLR, KC_PERC, _______,    _______, KC_CIRC, KC_AMPR, KC_ASTR, KC_LPRN, KC_RPRN, _______,
+      _______,  TD_EXL,   KC_AT, KC_HASH,  KC_DLR, KC_PERC, _______,    _______, KC_CIRC, KC_AMPR, KC_ASTR, KC_LPRN, KC_RPRN, _______,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
       _______,  KC_GRV, KC_TILD, KC_MINS, KC_UNDS,  KC_EQL, _______,    _______, KC_LBRC, KC_RBRC, KC_LCBR, KC_RCBR, TD_ASGN, KC_PIPE,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
@@ -169,8 +171,17 @@ void td_coln_assign_finished(tap_dance_state_t *state, void *user_data) {
     }
 }
 
+void td_exl_neq_finished(tap_dance_state_t *state, void *user_data) {
+    if (state->count == 1) {
+        tap_code16(KC_EXLM);
+    } else {
+        SEND_STRING("!=");
+    }
+}
+
 tap_dance_action_t tap_dance_actions[] = {
     [TD_COLN_ASSIGN] = ACTION_TAP_DANCE_FN(td_coln_assign_finished),
+    [TD_EXL_NEQ]     = ACTION_TAP_DANCE_FN(td_exl_neq_finished),
 };
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
