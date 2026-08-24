@@ -13,6 +13,12 @@ enum __layers {
     SYM
 };
 
+enum tap_dance_codes {
+    TD_EQL_EQEQ,    // tap: =   double-tap: ==
+    TD_EXL_NEQ,     // tap: !   double-tap: !=
+    TD_COLN_ASSIGN, // tap: :   double-tap: := (Go short var decl)
+};
+
 // DF() only moves the default layer in RAM, so the OS choice is lost on replug.
 // These write it to EEPROM instead.
 enum custom_keycodes {
@@ -43,6 +49,10 @@ enum custom_keycodes {
 #define M_SC RALT_T(KC_SCLN)
 
 #define CTL_ESC LCTL_T(KC_ESC)
+
+#define TD_EQL  TD(TD_EQL_EQEQ)
+#define TD_EXL  TD(TD_EXL_NEQ)
+#define TD_ASGN TD(TD_COLN_ASSIGN)
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
@@ -101,13 +111,45 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     // Z/X = @ _ , C/V = + ! , B = *. {} and [] dropped - already one shift away
     // on the base layer. Right hand is a number pad on YUIOP/HJKL;:
     // Y U I O P = 0 1 2 3 4, H J K L ; = 5 6 7 8 9.
+    // S, V and the quote slot are tap-dances: single tap sends the symbol shown
+    // above (=, !, :); double-tap sends ==, != or := instead.
     [SYM] = LAYOUT(
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
         _______, KC_TILD, KC_GRV,  KC_LPRN, KC_RPRN, KC_PERC, KC_0,    KC_1,    KC_2,    KC_3,    KC_4,    _______, _______, _______,  _______,
-        _______, KC_AMPR, KC_EQL,  KC_CIRC, KC_DLR,  KC_MINS, KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    _______,          _______,  _______,
-        _______, KC_AT,   KC_UNDS, KC_PLUS, KC_EXLM, KC_ASTR, _______, _______, _______, _______, _______,          _______, _______,  _______,
+        _______, KC_AMPR, TD_EQL,  KC_CIRC, KC_DLR,  KC_MINS, KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    TD_ASGN,          _______,  _______,
+        _______, KC_AT,   KC_UNDS, KC_PLUS, TD_EXL,  KC_ASTR, _______, _______, _______, _______, _______,          _______, _______,  _______,
         _______, _______, _______,                   _______,                            _______, _______,          _______, _______,  _______, _______),
+};
+
+void td_eql_eqeq_finished(tap_dance_state_t *state, void *user_data) {
+    if (state->count == 1) {
+        tap_code16(KC_EQL);
+    } else {
+        SEND_STRING("==");
+    }
+}
+
+void td_exl_neq_finished(tap_dance_state_t *state, void *user_data) {
+    if (state->count == 1) {
+        tap_code16(KC_EXLM);
+    } else {
+        SEND_STRING("!=");
+    }
+}
+
+void td_coln_assign_finished(tap_dance_state_t *state, void *user_data) {
+    if (state->count == 1) {
+        tap_code16(KC_COLN);
+    } else {
+        SEND_STRING(":=");
+    }
+}
+
+tap_dance_action_t tap_dance_actions[] = {
+    [TD_EQL_EQEQ]    = ACTION_TAP_DANCE_FN(td_eql_eqeq_finished),
+    [TD_EXL_NEQ]     = ACTION_TAP_DANCE_FN(td_exl_neq_finished),
+    [TD_COLN_ASSIGN] = ACTION_TAP_DANCE_FN(td_coln_assign_finished),
 };
 
 // The TMUX layer holds bare tmux command keys; the leader is injected here rather
