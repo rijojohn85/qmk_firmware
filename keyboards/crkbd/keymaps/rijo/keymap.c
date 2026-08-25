@@ -184,6 +184,46 @@ tap_dance_action_t tap_dance_actions[] = {
     [TD_EXL_NEQ]     = ACTION_TAP_DANCE_FN(td_exl_neq_finished),
 };
 
+// Base-layer letter combos for bracket pairs and comparison operators, so
+// they're reachable without holding SYM. Non-overlapping key pairs (each
+// letter used in only one combo) to keep detection unambiguous. Kept off
+// J/K/L/; on purpose - those are home-row mod-tap keys, and QMK resolving
+// their tap/hold state fights with combo detection, so they never fire.
+enum combos {
+    CM_BRACE,
+    CM_PAREN,
+    CM_BRACKET,
+    CM_NEQ,
+    CM_ASSIGN,
+    COMBO_LENGTH
+};
+uint16_t COMBO_LEN = COMBO_LENGTH;
+
+const uint16_t PROGMEM brace_combo[]   = {KC_Q, KC_W, COMBO_END};
+const uint16_t PROGMEM paren_combo[]   = {KC_E, KC_R, COMBO_END};
+const uint16_t PROGMEM bracket_combo[] = {KC_U, KC_I, COMBO_END};
+const uint16_t PROGMEM neq_combo[]     = {KC_M, KC_COMM, COMBO_END};
+const uint16_t PROGMEM assign_combo[]  = {KC_DOT, KC_SLSH, COMBO_END};
+
+combo_t key_combos[] = {
+    [CM_BRACE]   = COMBO_ACTION(brace_combo),
+    [CM_PAREN]   = COMBO_ACTION(paren_combo),
+    [CM_BRACKET] = COMBO_ACTION(bracket_combo),
+    [CM_NEQ]     = COMBO_ACTION(neq_combo),
+    [CM_ASSIGN]  = COMBO_ACTION(assign_combo),
+};
+
+void process_combo_event(uint16_t combo_index, bool pressed) {
+    if (!pressed) return;
+    switch (combo_index) {
+        case CM_BRACE:   SEND_STRING("{}" SS_TAP(X_LEFT)); break;
+        case CM_PAREN:   SEND_STRING("()" SS_TAP(X_LEFT)); break;
+        case CM_BRACKET: SEND_STRING("[]" SS_TAP(X_LEFT)); break;
+        case CM_NEQ:     SEND_STRING("!="); break;
+        case CM_ASSIGN:  SEND_STRING(":="); break;
+    }
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!record->event.pressed) {
         return true;
