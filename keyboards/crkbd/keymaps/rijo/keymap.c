@@ -32,6 +32,16 @@ enum custom_keycodes {
     TM_MK,               // C-a C-k
     TM_ML,               // C-a C-l
     TM_PFX,              // bare C-a prefix, then type anything
+    TM_W0,               // C-a 0   window 0
+    TM_W1,               // C-a 1   window 1
+    TM_W2,               // C-a 2   window 2
+    TM_W3,               // C-a 3   window 3
+    TM_W4,               // C-a 4   window 4
+    TM_W5,               // C-a 5   window 5
+    TM_W6,               // C-a 6   window 6
+    TM_W7,               // C-a 7   window 7
+    TM_W8,               // C-a 8   window 8
+    TM_W9,               // C-a 9   window 9
     OS_MAC,              // force mac base (persistent)
     OS_LIN,              // force linux base (persistent)
 };
@@ -131,11 +141,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_TMUX] = LAYOUT_split_3x6_3_ex2(
   //,--------------------------------------------------------------.  ,--------------------------------------------------------------.
-      XXXXXXX, XXXXXXX,  TM_WIN, XXXXXXX,  TM_RES, XXXXXXX, XXXXXXX,    XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,  TM_PRV, XXXXXXX,
+      XXXXXXX,  TM_W0,   TM_W1,   TM_W2,   TM_W3,   TM_W4, XXXXXXX,    XXXXXXX,   TM_W5,   TM_W6,   TM_W7,   TM_W8,   TM_W9, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-      XXXXXXX,  TM_PFX,  TM_SAV,  TM_DET, XXXXXXX, XXXXXXX, XXXXXXX,    XXXXXXX,   TM_MH,   TM_MJ,   TM_MK,   TM_ML, XXXXXXX, XXXXXXX,
+      XXXXXXX,  TM_PFX,  TM_SAV,  TM_DET,  TM_WIN,  TM_RES, XXXXXXX,    XXXXXXX,   TM_MH,   TM_MJ,   TM_MK,   TM_ML, XXXXXXX, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-      XXXXXXX, XXXXXXX, XXXXXXX,  TM_NEW, XXXXXXX, XXXXXXX,                       TM_NXT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+      XXXXXXX, XXXXXXX, XXXXXXX,  TM_NEW, XXXXXXX, XXXXXXX,                       TM_NXT,  TM_PRV, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                                           _______, _______, _______,    _______, _______, _______
                                       //`--------------------------'  `--------------------------'
@@ -241,6 +251,16 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case TM_MK:  SEND_STRING(SS_LCTL("ak")); return false;
         case TM_ML:  SEND_STRING(SS_LCTL("al")); return false;
         case TM_PFX: SEND_STRING(SS_LCTL("a")); return false;
+        case TM_W0:  SEND_STRING(SS_LCTL("a") "0"); return false;
+        case TM_W1:  SEND_STRING(SS_LCTL("a") "1"); return false;
+        case TM_W2:  SEND_STRING(SS_LCTL("a") "2"); return false;
+        case TM_W3:  SEND_STRING(SS_LCTL("a") "3"); return false;
+        case TM_W4:  SEND_STRING(SS_LCTL("a") "4"); return false;
+        case TM_W5:  SEND_STRING(SS_LCTL("a") "5"); return false;
+        case TM_W6:  SEND_STRING(SS_LCTL("a") "6"); return false;
+        case TM_W7:  SEND_STRING(SS_LCTL("a") "7"); return false;
+        case TM_W8:  SEND_STRING(SS_LCTL("a") "8"); return false;
+        case TM_W9:  SEND_STRING(SS_LCTL("a") "9"); return false;
         case OS_MAC: set_single_persistent_default_layer(_MAC); return false;
         case OS_LIN: set_single_persistent_default_layer(_LIN); return false;
     }
