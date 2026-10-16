@@ -3,6 +3,7 @@
 // OS detection picks the base layer on plug-in; manual override on FUN layer.
 
 #include QMK_KEYBOARD_H
+#include "transactions.h"
 
 enum layers {
     _LIN,  // Linux / Windows base
@@ -115,27 +116,32 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                       //`--------------------------'  `--------------------------'
   ),
 
+    // Numpad + operators on the right (held by left thumb); left half stays
+    // transparent so home-row mods work. G = Layer Lock for long number runs.
     [_NUM] = LAYOUT_split_3x6_3_ex2(
   //,--------------------------------------------------------------.  ,--------------------------------------------------------------.
-      _______, _______, _______, _______, _______, _______, _______,    _______, XXXXXXX,    KC_7,    KC_8,    KC_9, XXXXXXX, _______,
+      _______, _______, _______, _______, _______, _______, _______,    _______, KC_SLSH,    KC_7,    KC_8,    KC_9, KC_ASTR, _______,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-      _______, _______, _______, _______, _______, _______, _______,    _______,    KC_0,    KC_4,    KC_5,    KC_6, KC_MINS, _______,
+      _______, _______, _______, _______, _______, QK_LLCK, _______,    _______,    KC_0,    KC_4,    KC_5,    KC_6, KC_MINS, KC_PLUS,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-      _______, _______, _______, _______, _______, _______,                        KC_DOT,    KC_1,    KC_2,    KC_3, _______, _______,
+      _______, _______, _______, _______, _______, _______,                        KC_DOT,    KC_1,    KC_2,    KC_3,  KC_EQL, KC_COMM,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                                           _______, _______, _______,    _______, _______, _______
                                       //`--------------------------'  `--------------------------'
   ),
 
+    // Symbols on the left hand (held by right thumb), shifted symbols included
+    // so Shift is never needed here. Right home row stays transparent (mods);
+    // the few extras on the right sit on the base key they shift: : ? "
     [_SYM] = LAYOUT_split_3x6_3_ex2(
   //,--------------------------------------------------------------.  ,--------------------------------------------------------------.
-      _______,  TD_EXL,   KC_AT, KC_HASH,  KC_DLR, KC_PERC, _______,    _______, KC_CIRC, KC_AMPR, KC_ASTR, KC_LPRN, KC_RPRN, _______,
+      KC_TILD,  TD_EXL,   KC_AT, KC_HASH,  KC_DLR, KC_PERC, KC_CIRC,    _______, _______, _______, _______, _______, TD_ASGN, _______,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-      _______,  KC_GRV, KC_TILD, KC_MINS, KC_UNDS,  KC_EQL, _______,    _______, KC_LBRC, KC_RBRC, KC_LCBR, KC_RCBR, TD_ASGN, KC_PIPE,
+       KC_GRV,   KC_LT,   KC_GT, KC_LPRN, KC_RPRN,  KC_EQL, KC_AMPR,    _______, _______, _______, _______, _______, _______, KC_DQUO,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-      _______, _______, _______, _______, _______, _______,                       KC_PLUS, KC_BSLS, _______, _______, _______, _______,
+      KC_BSLS, KC_LBRC, KC_RBRC, KC_LCBR, KC_RCBR, KC_PIPE,                       _______, _______, _______, _______, KC_QUES, _______,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                          _______, _______, _______,    _______, _______, _______
+                                          KC_UNDS, KC_ASTR, KC_PLUS,    _______, _______, _______
                                       //`--------------------------'  `--------------------------'
   ),
 
@@ -281,4 +287,98 @@ bool process_detected_host_os_user(os_variant_t detected_os) {
             break;
     }
     return true;
+}
+
+// Flow Tap forces fast mod-taps to tap, which eats capitals typed mid-flow
+// ("the Corne" -> "the fcorne") and turns quick SYM holds into spaces.
+// Exempt the home-row shifts (same keycodes on LIN and MAC) and the SYM thumb.
+uint16_t get_flow_tap_term(uint16_t keycode, keyrecord_t *record, uint16_t prev_keycode) {
+    switch (keycode) {
+        case L_F:
+        case L_J:
+        case TH_SYM:
+            return 0;
+    }
+    if (is_flow_tap_key(keycode) && is_flow_tap_key(prev_keycode)) {
+        return FLOW_TAP_TERM;
+    }
+    return 0;
+}
+
+// RGB indicators: Caps Word lights the alpha keys, a locked NUM layer lights
+// the NUM layer's keys. The master owns both states, so it syncs them to the
+// other half over a custom split transaction.
+enum indicator_flags {
+    IND_CAPS_WORD = 1 << 0,
+    IND_NUM_LOCK  = 1 << 1,
+};
+static uint8_t indicator_state = 0;
+
+static void sync_indicators_slave(uint8_t in_len, const void *in_data, uint8_t out_len, void *out_data) {
+    if (in_len == sizeof(indicator_state)) {
+        indicator_state = *(const uint8_t *)in_data;
+    }
+}
+
+void keyboard_post_init_user(void) {
+    transaction_register_rpc(USER_SYNC_INDICATORS, sync_indicators_slave);
+}
+
+void housekeeping_task_user(void) {
+    if (!is_keyboard_master()) {
+        return;
+    }
+    indicator_state = (is_caps_word_on() ? IND_CAPS_WORD : 0) | (is_layer_locked(_NUM) ? IND_NUM_LOCK : 0);
+
+    // Send on change, plus a periodic resend in case the slave missed one.
+    static uint8_t  last_sent = 0xFF;
+    static uint32_t last_sync = 0;
+    if (indicator_state != last_sent || timer_elapsed32(last_sync) > 500) {
+        if (transaction_rpc_send(USER_SYNC_INDICATORS, sizeof(indicator_state), &indicator_state)) {
+            last_sent = indicator_state;
+            last_sync = timer_read32();
+        }
+    }
+}
+
+static uint16_t tap_keycode(uint16_t keycode) {
+    if (IS_QK_MOD_TAP(keycode)) return QK_MOD_TAP_GET_TAP_KEYCODE(keycode);
+    if (IS_QK_LAYER_TAP(keycode)) return QK_LAYER_TAP_GET_TAP_KEYCODE(keycode);
+    return keycode;
+}
+
+static void set_indicator(uint8_t led, uint8_t hue) {
+    rgb_t rgb = hsv_to_rgb((hsv_t){hue, 255, rgb_matrix_get_val()});
+    rgb_matrix_set_color(led, rgb.r, rgb.g, rgb.b);
+}
+
+bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    if (!indicator_state) {
+        return false;
+    }
+    for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+        for (uint8_t col = 0; col < MATRIX_COLS; ++col) {
+            uint8_t led = g_led_config.matrix_co[row][col];
+            if (led == NO_LED || led < led_min || led >= led_max) {
+                continue;
+            }
+            keypos_t pos = {.row = row, .col = col};
+            if (indicator_state & IND_NUM_LOCK) {
+                // NUM-only keys: numpad, operators and the lock key itself
+                uint16_t kc = keymap_key_to_keycode(_NUM, pos);
+                if (kc != KC_TRNS && kc != KC_NO) {
+                    set_indicator(led, 170); // blue
+                    continue;
+                }
+            }
+            if (indicator_state & IND_CAPS_WORD) {
+                // LIN and MAC share alpha positions, so _LIN works on both
+                uint16_t kc = tap_keycode(keymap_key_to_keycode(_LIN, pos));
+                if (kc >= KC_A && kc <= KC_Z) {
+                    set_indicator(led, 21);  // orange
+                }
+            }
+        }
+    }
+    return false;
 }
