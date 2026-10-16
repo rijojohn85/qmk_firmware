@@ -82,7 +82,7 @@ enum custom_keycodes {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_LIN] = LAYOUT_split_3x6_3_ex2(
   //,--------------------------------------------------------------.  ,--------------------------------------------------------------.
-       KC_TAB,    KC_Q,    KC_W,    KC_E,    KC_R,    KC_T, CW_TOGG,    KC_MUTE,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P, KC_BSPC,
+       KC_TAB,    KC_Q,    KC_W,    KC_E,    KC_R,    KC_T, KC_CAPS,    KC_MUTE,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P, KC_BSPC,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
       KC_LCTL,     L_A,     L_S,     L_D,     L_F,    KC_G,  OSL_TM,     OSL_TM,    KC_H,     L_J,     L_K,     L_L,  L_SCLN, KC_QUOT,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
@@ -94,7 +94,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_MAC] = LAYOUT_split_3x6_3_ex2(
   //,--------------------------------------------------------------.  ,--------------------------------------------------------------.
-       KC_TAB,    KC_Q,    KC_W,    KC_E,    KC_R,    KC_T, CW_TOGG,    KC_MUTE,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P, KC_BSPC,
+       KC_TAB,    KC_Q,    KC_W,    KC_E,    KC_R,    KC_T, KC_CAPS,    KC_MUTE,    KC_Y,    KC_U,    KC_I,    KC_O,    KC_P, KC_BSPC,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
       KC_LCTL,     M_A,     M_S,     M_D,     M_F,    KC_G,  OSL_TM,     OSL_TM,    KC_H,     M_J,     M_K,     M_L,  M_SCLN, KC_QUOT,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
@@ -240,11 +240,35 @@ void process_combo_event(uint16_t combo_index, bool pressed) {
     }
 }
 
+// Toggle OS Caps Lock with Shift released, so the host sees a bare Caps Lock.
+// The tap is held 100ms because macOS ignores very short Caps Lock presses.
+static void toggle_caps_lock(void) {
+    uint8_t mods = get_mods();
+    del_mods(MOD_MASK_SHIFT);
+    tap_code_delay(KC_CAPS, 100);
+    set_mods(mods);
+    send_keyboard_report();
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!record->event.pressed) {
         return true;
     }
     switch (keycode) {
+        // Both home-row shifts held (F + J, either order) toggles Caps Lock.
+        // Fires when the second one resolves to a hold.
+        case L_F:
+            if (record->tap.count == 0 && (get_mods() & MOD_BIT(KC_RSFT))) {
+                toggle_caps_lock();
+                return false;
+            }
+            break;
+        case L_J:
+            if (record->tap.count == 0 && (get_mods() & MOD_BIT(KC_LSFT))) {
+                toggle_caps_lock();
+                return false;
+            }
+            break;
         case TM_NEW: SEND_STRING(SS_LCTL("a") "c"); return false;
         case TM_NXT: SEND_STRING(SS_LCTL("a") "n"); return false;
         case TM_PRV: SEND_STRING(SS_LCTL("a") "p"); return false;
@@ -305,11 +329,11 @@ uint16_t get_flow_tap_term(uint16_t keycode, keyrecord_t *record, uint16_t prev_
     return 0;
 }
 
-// RGB indicators: Caps Word lights the alpha keys, a locked NUM layer lights
+// RGB indicators: host Caps Lock lights the alpha keys white, a locked NUM layer lights
 // the NUM layer's keys. The master owns both states, so it syncs them to the
 // other half over a custom split transaction.
 enum indicator_flags {
-    IND_CAPS_WORD = 1 << 0,
+    IND_CAPS_LOCK = 1 << 0,
     IND_NUM_LOCK  = 1 << 1,
 };
 static uint8_t indicator_state = 0;
@@ -328,7 +352,7 @@ void housekeeping_task_user(void) {
     if (!is_keyboard_master()) {
         return;
     }
-    indicator_state = (is_caps_word_on() ? IND_CAPS_WORD : 0) | (is_layer_locked(_NUM) ? IND_NUM_LOCK : 0);
+    indicator_state = (host_keyboard_led_state().caps_lock ? IND_CAPS_LOCK : 0) | (is_layer_locked(_NUM) ? IND_NUM_LOCK : 0);
 
     // Send on change, plus a periodic resend in case the slave missed one.
     static uint8_t  last_sent = 0xFF;
@@ -347,8 +371,8 @@ static uint16_t tap_keycode(uint16_t keycode) {
     return keycode;
 }
 
-static void set_indicator(uint8_t led, uint8_t hue) {
-    rgb_t rgb = hsv_to_rgb((hsv_t){hue, 255, rgb_matrix_get_val()});
+static void set_indicator(uint8_t led, uint8_t hue, uint8_t sat) {
+    rgb_t rgb = hsv_to_rgb((hsv_t){hue, sat, rgb_matrix_get_val()});
     rgb_matrix_set_color(led, rgb.r, rgb.g, rgb.b);
 }
 
@@ -367,15 +391,15 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
                 // NUM-only keys: numpad, operators and the lock key itself
                 uint16_t kc = keymap_key_to_keycode(_NUM, pos);
                 if (kc != KC_TRNS && kc != KC_NO) {
-                    set_indicator(led, 170); // blue
+                    set_indicator(led, 170, 255); // blue
                     continue;
                 }
             }
-            if (indicator_state & IND_CAPS_WORD) {
+            if (indicator_state & IND_CAPS_LOCK) {
                 // LIN and MAC share alpha positions, so _LIN works on both
                 uint16_t kc = tap_keycode(keymap_key_to_keycode(_LIN, pos));
                 if (kc >= KC_A && kc <= KC_Z) {
-                    set_indicator(led, 21);  // orange
+                    set_indicator(led, 0, 0);    // white
                 }
             }
         }
