@@ -109,16 +109,17 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     // this. Left-hand-only symbols for Neovim/LazyVim, laid out per finger column:
     // Q/W = ~ ` , E/R = ( ) , T = % , A/S = & = , D/F = ^ $ , G = - ,
     // Z/X = @ _ , C/V = + ! , B = *. {} and [] dropped - already one shift away
-    // on the base layer. Right hand is a number pad on YUIOP/HJKL;:
-    // Y U I O P = 0 1 2 3 4, H J K L ; = 5 6 7 8 9.
-    // S, V and the quote slot are tap-dances: single tap sends the symbol shown
-    // above (=, !, :); double-tap sends ==, != or := instead.
+    // on the base layer. Right hand is the Corne's numpad (7-8-9 / 4-5-6 / 1-2-3):
+    //   Y U I O P [ = / 7 8 9 * :=     H J K L ; ' = 0 4 5 6 - +
+    //   N M , . / = . 1 2 3 =
+    // S, V and [ are tap-dances: single tap sends the symbol shown above (=, !, :);
+    // double-tap sends ==, != or := instead.
     [SYM] = LAYOUT(
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
-        _______, KC_TILD, KC_GRV,  KC_LPRN, KC_RPRN, KC_PERC, KC_0,    KC_1,    KC_2,    KC_3,    KC_4,    _______, _______, _______,  _______,
-        _______, KC_AMPR, TD_EQL,  KC_CIRC, KC_DLR,  KC_MINS, KC_5,    KC_6,    KC_7,    KC_8,    KC_9,    TD_ASGN,          _______,  _______,
-        _______, KC_AT,   KC_UNDS, KC_PLUS, TD_EXL,  KC_ASTR, _______, _______, _______, _______, _______,          _______, _______,  _______,
+        _______, KC_TILD, KC_GRV,  KC_LPRN, KC_RPRN, KC_PERC, KC_SLSH, KC_7,    KC_8,    KC_9,    KC_ASTR, TD_ASGN, _______, _______,  _______,
+        _______, KC_AMPR, TD_EQL,  KC_CIRC, KC_DLR,  KC_MINS, KC_0,    KC_4,    KC_5,    KC_6,    KC_MINS, KC_PLUS,          _______,  _______,
+        _______, KC_AT,   KC_UNDS, KC_PLUS, TD_EXL,  KC_ASTR, KC_DOT,  KC_1,    KC_2,    KC_3,    KC_EQL,          _______, _______,  _______,
         _______, _______, _______,                   _______,                            _______, _______,          _______, _______,  _______, _______),
 };
 
@@ -151,6 +152,43 @@ tap_dance_action_t tap_dance_actions[] = {
     [TD_EXL_NEQ]     = ACTION_TAP_DANCE_FN(td_exl_neq_finished),
     [TD_COLN_ASSIGN] = ACTION_TAP_DANCE_FN(td_coln_assign_finished),
 };
+
+// Bracket pairs on adjacent base-layer letters (same as the Corne): press both
+// together and the pair is typed with the cursor left between them. None of these
+// keys are mod-taps here, so tap/hold resolution can't swallow the chord.
+enum combos {
+    CM_BRACE,
+    CM_PAREN,
+    CM_BRACKET,
+    CM_ANGLE,
+};
+
+const uint16_t PROGMEM brace_combo[]   = {KC_Q, KC_W, COMBO_END};
+const uint16_t PROGMEM paren_combo[]   = {KC_E, KC_R, COMBO_END};
+const uint16_t PROGMEM bracket_combo[] = {KC_U, KC_I, COMBO_END};
+const uint16_t PROGMEM angle_combo[]   = {KC_T, KC_Y, COMBO_END};
+
+combo_t key_combos[] = {
+    [CM_BRACE]   = COMBO_ACTION(brace_combo),
+    [CM_PAREN]   = COMBO_ACTION(paren_combo),
+    [CM_BRACKET] = COMBO_ACTION(bracket_combo),
+    [CM_ANGLE]   = COMBO_ACTION(angle_combo),
+};
+
+void process_combo_event(uint16_t combo_index, bool pressed) {
+    if (!pressed) return;
+    switch (combo_index) {
+        case CM_BRACE:   SEND_STRING("{}" SS_TAP(X_LEFT)); break;
+        case CM_PAREN:   SEND_STRING("()" SS_TAP(X_LEFT)); break;
+        case CM_BRACKET: SEND_STRING("[]" SS_TAP(X_LEFT)); break;
+        case CM_ANGLE:   SEND_STRING("<>" SS_TAP(X_LEFT)); break;
+    }
+}
+
+// Only on the base layers: SYM, TMUX and the Fn layers reuse these keys.
+bool combo_should_trigger(uint16_t combo_index, combo_t *combo, uint16_t keycode, keyrecord_t *record) {
+    return get_highest_layer(layer_state) == 0;
+}
 
 // The TMUX layer holds bare tmux command keys; the leader is injected here rather
 // than baked into each one, so adding a binding is a one-key edit to the layer above.
