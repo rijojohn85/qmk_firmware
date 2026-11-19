@@ -110,15 +110,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     // Q/W = ~ ` , E/R = ( ) , T = % , A/S = & = , D/F = ^ $ , G = - ,
     // Z/X = @ _ , C/V = + ! , B = *. {} and [] dropped - already one shift away
     // on the base layer. Right hand is the Corne's numpad (7-8-9 / 4-5-6 / 1-2-3):
-    //   Y U I O P [ = / 7 8 9 * :=     H J K L ; ' = 0 4 5 6 - +
+    //   Y U I O P = / 7 8 9 *     H J K L ; ' = 0 4 5 6 := +
     //   N M , . / = . 1 2 3 =
-    // S, V and [ are tap-dances: single tap sends the symbol shown above (=, !, :);
+    // [ is left transparent, so Space+[ still types [.
+    // S, V and ; are tap-dances: single tap sends the symbol shown above (=, !, :);
     // double-tap sends ==, != or := instead.
     [SYM] = LAYOUT(
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
         _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,  _______,
-        _______, KC_TILD, KC_GRV,  KC_LPRN, KC_RPRN, KC_PERC, KC_SLSH, KC_7,    KC_8,    KC_9,    KC_ASTR, TD_ASGN, _______, _______,  _______,
-        _______, KC_AMPR, TD_EQL,  KC_CIRC, KC_DLR,  KC_MINS, KC_0,    KC_4,    KC_5,    KC_6,    KC_MINS, KC_PLUS,          _______,  _______,
+        _______, KC_TILD, KC_GRV,  KC_LPRN, KC_RPRN, KC_PERC, KC_SLSH, KC_7,    KC_8,    KC_9,    KC_ASTR, _______, _______, _______,  _______,
+        _______, KC_AMPR, TD_EQL,  KC_CIRC, KC_DLR,  KC_MINS, KC_0,    KC_4,    KC_5,    KC_6,    TD_ASGN, KC_PLUS,         _______,  _______,
         _______, KC_AT,   KC_UNDS, KC_PLUS, TD_EXL,  KC_ASTR, KC_DOT,  KC_1,    KC_2,    KC_3,    KC_EQL,          _______, _______,  _______,
         _______, _______, _______,                   _______,                            _______, _______,          _______, _______,  _______, _______),
 };
